@@ -87,6 +87,18 @@ def random_norm_percent(mu, sigma):
 
 	return output
 
+def random_chisquare(df, sigma):
+	def output(x):
+		return (x*(1.+sigma/100.*(np.random.chisquare(df, size=(1,3))-df)/np.sqrt(2.*df)))[0]
+
+	return output
+
+def random_expo(lambda_v, sigma):
+	def output(x):
+		return (x*(1.+(lambda_v**2)*sigma/100.*(np.random.exponential(lambda_v, size=(1,3))-1./lambda_v)))[0]
+
+	return output
+
 class RLA:
 	def __init__(self, LA=None, rf=random_norm_percent(0,10), **kwargs):
 		if LA is None:
