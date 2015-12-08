@@ -44,17 +44,15 @@ def plot_lorentz(output):
 	ax.plot(coords[0], coords[1], coords[2])
 	plt.show(block=False)
 
-class LorentzAttractor:
+class LorenzAttractor:
 	def __init__(self, xs0=[.1,0.,0.], sigma=10., rho=28., beta=8/3., tf=50., 
 			h=0.005, f=lorentz_func):
-		rk4_out = rk4(h, xs0, sigma=float(sigma), rho=float(rho), beta=float(beta), tf=float(tf), f=f)
+		self.rk4_out = rk4(h, xs0, sigma=float(sigma), rho=float(rho), beta=float(beta), tf=float(tf), f=f)
 		self.f = f
 		self.tf = tf
 		self.la_params = {'sigma':sigma, 'rho':rho, 'beta':beta}
-		self.ts = [o[0] for o in rk4_out]
-		self.xs = {o[0]:o[1] for o in rk4_out}
-
-	
+		self.ts = [o[0] for o in self.rk4_out]
+		self.xs = {o[0]:o[1] for o in self.rk4_out}
 
 	def __getitem__(self, tnew):
 		"""
@@ -82,3 +80,30 @@ class LorentzAttractor:
 		coords = zip(*[self.xs[t] for t in self.ts])
 		ax.plot(coords[0], coords[1], coords[2])
 		plt.show(block=False)
+
+def random_norm_percent(mu, sigma):
+	def output(x):
+		return (x*(1.+np.random.normal(mu, sigma, size=(1,3))/100.))[0]
+
+	return output
+
+class RLA:
+	def __init__(self, LA=None, rf=random_norm_percent(0,10), **kwargs):
+		if LA is None:
+			LA = LorenzAttractor(**kwargs)
+
+		self.la = LA
+		self.rf = rf
+		self.vals = {}
+
+	def __getitem__(self, val):
+		return self.rf(self.la[val])
+
+	def plot(self):
+		return self.la.plot()
+
+	def get_all(self):
+		all_vals = []
+		for t,v in self.la.xs.iteritems():
+			all_vals.append((t,self.rf(v)))
+		return sorted(all_vals, key=lambda x:x[0])

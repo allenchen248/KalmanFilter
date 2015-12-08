@@ -1,6 +1,8 @@
 import numpy as np
 import numpy.random as random
 
+from project.progress import Progress
+
 class Uniform:
 	def __init__(self, a, b, temperature=0.1):
 		if b <= a:
@@ -22,8 +24,8 @@ class Uniform:
 	def resample(self):
 		# Do not store in self.value because that involves a pointer dereference
 		newval = random.triangular(self.value-self.temp, self.value, self.value+self.temp)
-		while (newval > self.b) or (newval < self.a):
-			newval = random.uniform(self.value-self.temp, self.value+self.temp)
+		#while (newval > self.b) or (newval < self.a):
+		#	newval = random.triangular(self.value-self.temp, self.value, self.value+self.temp)
 
 		self.value = newval
 		return newval
@@ -85,14 +87,16 @@ class MCMC:
 		self.prev_loglik = None
 		self.changed = None
 		self.path = []
+		self.lls = []
 
 	def generate_rv(self, name, rv_func):
-		#if name not in self.prev:
-		#	self.rvs[name] = rv_func()
-		#else:
-		#	self.rvs[name] = self.prev[name]
+		# Can't handle changing numbers of vars yet
+		if name not in self.prev:
+			self.rvs[name] = rv_func()
+		else:
+			self.rvs[name] = self.prev[name]
 
-		self.rvs[name] = rv_func()
+		#self.rvs[name] = rv_func()
 		return self.rvs[name].value
 
 	def uniform(self, name, a=0, b=1, **kwargs):
@@ -105,7 +109,8 @@ class MCMC:
 		return self.generate_rv(name, lambda: Bernoulli(p, **kwargs))
 
 	def accept(self, val):
-		self.path.append(self.prev)
+		self.path.append({k:v.value for k,v in self.prev.iteritems()})
+		self.lls.append(val)
 		self.prev = self.rvs
 		self.resample()
 
@@ -122,7 +127,8 @@ class MCMC:
 	def resample(self):
 		# Improve the speed of this
 		name = self.prev.keys()[random.random_integers(0, len(self.prev)-1)]
-		val = self.prev[name].resample()
+		val = self.prev[name].value
+		self.prev[name].resample()
 		self.changed = (name, val)
 
 
@@ -136,15 +142,29 @@ class MCMC:
 		prior_ratio = np.sum([rv.prior_loglik() for rv in self.rvs.itervalues()]) - np.sum([rv.prior_loglik() for rv in self.prev.itervalues()])
 		cur_ratio = loglik_val - self.prev_loglik
 
-		accept_ratio = min(1, np.exp(prior_ratio + cur_ratio))
+		if prior_ratio+cur_ratio > 1:
+			accept_ratio = 1
+		else:
+			accept_ratio = min(1, np.exp(prior_ratio + cur_ratio))
 
 		if random.uniform(0,1) < accept_ratio:
-			print accept_ratio, prior_ratio, cur_ratio
+			#print accept_ratio, prior_ratio, cur_ratio
 			#print "ACCEPT"
 			return self.accept(loglik_val)
 
 		#print "REJECT"
 		return self.reject()
+
+	def run(self, f, n, *args, **kwargs):
+		prg = Progress(n)
+		output = []
+		for i in xrange(n):
+			output.append(f(self, *args, **kwargs))
+			prg.increment(1, "Accepted: "+str(len(self.path))+"   ")
+		prg.finish()
+
+		return output
+
 
 
 
