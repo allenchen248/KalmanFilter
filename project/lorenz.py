@@ -45,6 +45,9 @@ def plot_lorentz(output):
 	plt.show(block=False)
 
 class LorenzAttractor:
+	"""
+	Main class to instantiate what looks like a continuous time lorenz attractor.
+	"""
 	def __init__(self, xs0=[.1,0.,0.], sigma=10., rho=28., beta=8/3., tf=50., 
 			h=0.005, f=lorentz_func):
 		self.rk4_out = rk4(h, xs0, sigma=float(sigma), rho=float(rho), beta=float(beta), tf=float(tf), f=f)
@@ -59,7 +62,7 @@ class LorenzAttractor:
 		If xs at that time doesn't exist, run a step of RK4 in order to
 		generate what the x value should be there.
 		"""
-		if (tnew > self.tf) or (tnew <= 0):
+		if (tnew > self.tf) or (tnew < 0):
 			raise ValueError("Time Isn't Within Bounds")
 
 		if tnew in self.xs:
@@ -75,6 +78,9 @@ class LorenzAttractor:
 		return x+h*(k1+2*k2+2*k3+k4)/6
 
 	def plot(self):
+		"""
+		Plots in 3D!
+		"""
 		fig = plt.figure()
 		ax = fig.add_subplot(111, projection='3d')
 		coords = zip(*[self.xs[t] for t in self.ts])
@@ -82,24 +88,36 @@ class LorenzAttractor:
 		plt.show(block=False)
 
 def random_norm_percent(mu, sigma):
+	"""
+	Generates N(mu, sigma) noise as a percent of output
+	"""
 	def output(x):
 		return (x*(1.+np.random.normal(mu, sigma, size=(1,3))/100.))[0]
 
 	return output
 
 def random_chisquare(df, sigma):
+	"""
+	Generates chi-square noise as a percent of output
+	"""
 	def output(x):
 		return (x*(1.+sigma/100.*(np.random.chisquare(df, size=(1,3))-df)/np.sqrt(2.*df)))[0]
 
 	return output
 
 def random_expo(lambda_v, sigma):
+	"""
+	Generates exponential noise as a percent of output
+	"""
 	def output(x):
 		return (x*(1.+(lambda_v**2)*sigma/100.*(np.random.exponential(lambda_v, size=(1,3))-1./lambda_v)))[0]
 
 	return output
 
 class RLA:
+	"""
+	Random Lorenz Attractor - adds in a random noise function and returns it
+	"""
 	def __init__(self, LA=None, rf=random_norm_percent(0,10), **kwargs):
 		if LA is None:
 			LA = LorenzAttractor(**kwargs)
@@ -109,12 +127,31 @@ class RLA:
 		self.vals = {}
 
 	def __getitem__(self, val):
+		"""
+		Maintain the illusion of continuous time
+		"""
 		return self.rf(self.la[val])
 
 	def plot(self):
-		return self.la.plot()
+		"""
+		Plot the random noise in addition to the truth values
+		"""
+		rk4_out = self.get_all()
+		ts = [o[0] for o in rk4_out]
+		xs = {o[0]:o[1] for o in rk4_out}
+		fig = plt.figure()
+		ax = fig.add_subplot(111, projection='3d')
+		coords = zip(*[xs[t] for t in ts])
+		ax.plot(coords[0], coords[1], coords[2], c='blue')
+
+		coords_origin = zip(*[self.la.xs[t] for t in self.la.ts])
+		ax.plot(coords_origin[0], coords_origin[1], coords_origin[2], 'black')
+		plt.show(block=False)
 
 	def get_all(self):
+		"""
+		Get all random values once.
+		"""
 		all_vals = []
 		for t,v in self.la.xs.iteritems():
 			all_vals.append((t,self.rf(v)))
