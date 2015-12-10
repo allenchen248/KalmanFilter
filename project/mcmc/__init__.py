@@ -6,6 +6,8 @@ from project.progress import Progress
 class Uniform:
 	"""
 	Uniform RV Object
+
+	This regenerates uniform random variables for MCMC
 	"""
 	def __init__(self, a, b, temperature=0.1):
 		if b <= a:
@@ -22,9 +24,15 @@ class Uniform:
 		return self.__str__() 
 
 	def generate(self):
+		"""
+		Generates the initial value (deprecated)
+		"""
 		return self.value
 
 	def resample(self):
+		"""
+		Resamples the distribution
+		"""
 		# Do not store in self.value because that involves a pointer dereference
 		newval = random.triangular(self.value-self.temp, self.value, self.value+self.temp)
 		#while (newval > self.b) or (newval < self.a):
@@ -34,6 +42,9 @@ class Uniform:
 		return newval
 
 	def prior_loglik(self):
+		"""
+		The prior loglikelihood for this random variable.
+		"""
 		return -1*np.log(self.b-self.a)
 
 class Bernoulli:

@@ -1,6 +1,9 @@
 import csv
 
 def read_csv(fname):
+	"""
+	Reads in a CSV file
+	"""
 	with open(fname, 'r') as csvfile:
 		freader = csv.reader(csvfile, delimiter=',')
 		headers = freader.next()

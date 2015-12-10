@@ -4,29 +4,18 @@ import matplotlib.pyplot as plt
 
 DIRPATH = os.path.dirname(os.path.realpath(__file__))+"\\"
 
-class AutoData:
-	def __init__(self, p, l, c):
-		self.p = {p[0][i]:p[1][i][0] for i in xrange(len(p[1]))}
-		#self.l = l
-		#self.c = c
-
-		vstime = zip(*c[1])
-		vstime.extend(zip(*l[1]))
-
-		self.data = sorted(vstime, key=lambda x:x[0])
-		self.curind = 0
-
-	def __getitem__(self, val):
-		return self.data[val]
-
-	def iteritems(self):
-		return ([d[0],d[1:]] for d in self.data)
-
-
 def beta_pdf(xs, alpha=1, beta=1):
+	"""
+	The beta-binomial PDF for a given set of xs.
+
+	Used in testing the MCMC code for correctness
+	"""
 	return np.array([x**(alpha-1) * (1-x)**(beta-1) for x in xs])/betafunc(alpha, beta)
 
 def plot(mh, varname):
+	"""
+	Plot the posterior of a single variable from a MCMC object
+	"""
 	output = []
 	for i in mh.path[1:]:
 		output.append(i[varname])
@@ -35,18 +24,30 @@ def plot(mh, varname):
 	plt.show(block=False)
 
 def normal_lorenz_pdf(obs, pred):
+	"""
+	The likelihood function for our lorenz attractor - given the observations
+	and the predictions, what is the likelihood?
+	"""
+
 	# This factor doesn't matter because we subtract the previous iteration anyways
 	# We removed it to save computation
 	#loglik = -1*len(obs)*np.log(10*np.sqrt(2*np.pi))
+
 	loglik=0
 	for i in xrange(len(obs)):
 		p = pred[i][1]
 		o = obs[i][1]
+		# Normal loglik
 		loglik -= np.sum([x for x in 50*((o/p)-1)**2 if not np.isnan(x)])
 
 	return loglik/len(obs)
 
 def gen_lik_graph(minval=0.05, maxval=0.15, n=1000, name='X', lf = lambda s,t: LorenzAttractor(np.array([s,0.,0.]), 10., 28., 8/3., tf=t).rk4_out):
+	"""
+	Generate the likelihood graph that can be seen in the writeup.
+	"""
+
+	# For t_f = 1
 	xs0 = np.array([.1,0.,0.])
 	X = RLA(xs0=xs0, sigma=10., rho=28., beta=8/3., tf=1.).get_all()
 
@@ -58,6 +59,7 @@ def gen_lik_graph(minval=0.05, maxval=0.15, n=1000, name='X', lf = lambda s,t: L
 		ys.append(normal_lorenz_pdf(X, Y))
 		prg.increment(1)
 
+	# For t_f = 10
 	X2 = RLA(xs0=xs0, sigma=10., rho=28., beta=8/3., tf=10.).get_all()
 
 	xs2 = np.linspace(minval, maxval, n)
@@ -68,6 +70,7 @@ def gen_lik_graph(minval=0.05, maxval=0.15, n=1000, name='X', lf = lambda s,t: L
 		ys2.append(normal_lorenz_pdf(X2, Y2))
 		prg.increment(1)
 
+	# For t_f = 20
 	X3 = RLA(xs0=xs0, sigma=10., rho=28., beta=8/3., tf=20.).get_all()
 
 	xs3 = np.linspace(minval, maxval, n)
@@ -78,6 +81,8 @@ def gen_lik_graph(minval=0.05, maxval=0.15, n=1000, name='X', lf = lambda s,t: L
 		ys3.append(normal_lorenz_pdf(X3, Y3))
 		prg.increment(1)
 
+
+	# Actual plotting. Hopefully things look pretty
 	plt.plot(xs, [-1*np.log(-1*y) for y in ys])
 	plt.plot(xs2, [-1*np.log(-1*y) for y in ys2])
 	plt.plot(xs3, [-1*np.log(-1*y) for y in ys3])
@@ -89,6 +94,9 @@ def gen_lik_graph(minval=0.05, maxval=0.15, n=1000, name='X', lf = lambda s,t: L
 	return [(xs, ys), (xs2, ys2), (xs3, ys3)]
 
 def multiplot(mh, start=1, end=-1, varnames=['sigma', 'rho', 'beta'], actual=[10,28,8/3.], title=""):
+	"""
+	Plots several variables worth of graphs on a single page. Nice for saving xs and space.
+	"""
 	output = {v:[] for v in varnames}
 	for i in mh.path[start:end]:
 		for v in varnames:

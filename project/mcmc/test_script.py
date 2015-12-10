@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore")
 from scipy.stats import entropy
 
 # Likelihood graphs
+# from what was in the writeup
 gen_lik_graph(27.,29., name='Rho', lf = lambda s,t: LorenzAttractor(np.array([0.1,0.,0.]), 10., s, 8/3., tf=t).rk4_out)
 gen_lik_graph(-0.05, 0.05, name='Z', lf = lambda s,t: LorenzAttractor(np.array([0.1,0.,s]), 10., 28., 8/3., tf=t).rk4_out)
 
